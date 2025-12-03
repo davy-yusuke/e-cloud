@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  mongo:
+    image: mongo:6.0
+    ports: ["27017:27017"]
+    volumes:
+      - mongo_data:/data/db
+
+  app:
+    build: .
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+      - MONGO_DB=ecloud
+      - JWT_SECRET=example
+      - STORAGE_BASE=/data/storage
+    volumes:
+      - storage_data:/data/storage
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongo
+
+volumes:
+  mongo_data:
+  storage_data:

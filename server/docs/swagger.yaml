@@ -1,0 +1,770 @@
+basePath: /
+definitions:
+  controllers.FolderStat:
+    properties:
+      count:
+        type: integer
+      percent:
+        description: percentage (0-100), rounded to 2 decimals
+        type: number
+      type:
+        description: e.g. "png", "jpg", "folder", "unknown"
+        type: string
+    type: object
+  controllers.FolderStatsResponse:
+    properties:
+      parent_id:
+        type: string
+      stats:
+        items:
+          $ref: '#/definitions/controllers.FolderStat'
+        type: array
+      total_items:
+        type: integer
+    type: object
+  controllers.UnzipResponse:
+    properties:
+      created_count:
+        type: integer
+      created_nodes:
+        items:
+          $ref: '#/definitions/models.Node'
+        type: array
+      created_paths:
+        items:
+          type: string
+        type: array
+      message:
+        type: string
+      root_parent_id:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  controllers.changeEmailReq:
+    properties:
+      current_password:
+        type: string
+      new_email:
+        type: string
+    required:
+    - current_password
+    - new_email
+    type: object
+  controllers.changePasswordReq:
+    properties:
+      current_password:
+        type: string
+      new_password:
+        minLength: 8
+        type: string
+    required:
+    - current_password
+    - new_password
+    type: object
+  controllers.createFolderReq:
+    properties:
+      name:
+        type: string
+      parent_id:
+        type: string
+    required:
+    - name
+    type: object
+  controllers.loginReq:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  controllers.loginRes:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  controllers.logoutReq:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  controllers.moveReq:
+    properties:
+      parent_id:
+        description: 空文字列で root に移動
+        type: string
+    type: object
+  controllers.refreshReq:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  controllers.refreshRes:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  controllers.registerReq:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  controllers.userRes:
+    properties:
+      avatar_url:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Node:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      mime:
+        type: string
+      name:
+        type: string
+      owner_id:
+        type: string
+      parent_id:
+        description: 'root: empty'
+        type: string
+      path:
+        description: local storage path for files
+        type: string
+      size:
+        description: bytes for files
+        type: integer
+      type:
+        description: '"file" | "folder"'
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: http://localhost:8080
+info:
+  contact: {}
+  description: Auth API example
+  title: e-cloud API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: email and password
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.loginReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.loginRes'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: refresh token to revoke
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.logoutReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Logout (revoke refresh token)
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: refresh token
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.refreshReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.refreshRes'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Refresh tokens
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: email and password
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.registerReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register
+      tags:
+      - auth
+  /files:
+    get:
+      parameters:
+      - description: parent id (optional)
+        in: query
+        name: parent_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Node'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: List files/folders
+      tags:
+      - files
+  /files/{id}:
+    delete:
+      parameters:
+      - description: node id
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - ApiKeyAuth: []
+      summary: Delete node (file or folder)
+      tags:
+      - files
+  /files/{id}/download:
+    get:
+      parameters:
+      - description: file id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      security:
+      - ApiKeyAuth: []
+      summary: Download file
+      tags:
+      - files
+  /files/unzip:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: parent folder id
+        in: formData
+        name: parent_id
+        type: string
+      - description: zip file to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/controllers.UnzipResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Unzip uploaded ZIP archive
+      tags:
+      - files
+  /files/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: parent folder id
+        in: formData
+        name: parent_id
+        type: string
+      - description: file to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Node'
+      security:
+      - ApiKeyAuth: []
+      summary: Upload file
+      tags:
+      - files
+  /folder/{parent_id}/parent:
+    get:
+      parameters:
+      - description: folder id (the folder to get the parent of)
+        in: path
+        name: parent_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: parent node, or null if none
+          schema:
+            $ref: '#/definitions/models.Node'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get immediate parent of a folder
+      tags:
+      - files
+  /folders:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: name and optional parent
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.createFolderReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Node'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create folder
+      tags:
+      - files
+  /folders/{parent_id}:
+    get:
+      parameters:
+      - description: parent folder id
+        in: path
+        name: parent_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Node'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: List files/folders under a folder
+      tags:
+      - files
+  /folders/{parent_id}/stats:
+    get:
+      parameters:
+      - description: parent folder id (use empty string for root)
+        in: path
+        name: parent_id
+        required: true
+        type: string
+      - default: false
+        description: include nested children recursively
+        in: query
+        name: recursive
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.FolderStatsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get folder stats (items count and breakdown by file extension)
+      tags:
+      - files
+  /me:
+    get:
+      description: Returns the authenticated user's profile information extracted
+        from the JWT.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controllers.userRes'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get current user
+      tags:
+      - user
+  /me/email:
+    post:
+      consumes:
+      - application/json
+      description: Change the authenticated user's email. Requires current password
+        for confirmation.
+      parameters:
+      - description: current password and new email
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.changeEmailReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Change email
+      tags:
+      - user
+  /me/password:
+    post:
+      consumes:
+      - application/json
+      description: Change the authenticated user's password. Requires current password
+        for confirmation. This will not return a body (204).
+      parameters:
+      - description: current password and new password
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.changePasswordReq'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Change password
+      tags:
+      - user
+  /me/profile:
+    post:
+      consumes:
+      - multipart/form-data
+      - application/json
+      description: Update the authenticated user's profile. Accepts multipart/form-data
+        for avatar upload or a JSON body with `name`.
+      parameters:
+      - description: Display name
+        in: formData
+        name: name
+        type: string
+      - description: Avatar image file (multipart/form-data)
+        in: formData
+        name: avatar
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Update profile (name or avatar)
+      tags:
+      - user
+  /move/{id}:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: node id to move
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: new parent id (empty string for root)
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.moveReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Node'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Move node (file or folder) to another parent (or root)
+      tags:
+      - files
+swagger: "2.0"
