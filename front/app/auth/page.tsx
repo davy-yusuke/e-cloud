@@ -261,8 +261,6 @@ export default function AuthForm() {
                                     {mode === "login" ? "アカウントを作成する" : "既にアカウントを持っている"}
                                 </button>
                             </div>
-
-                            <div className="mt-2 text-xs text-muted-foreground">※ セキュリティ: このUIはクライアント側のバリデーションを行いますが、必ずサーバー側でパスワードのハッシュ化（bcrypt/argon2 等）、レートリミット、CAPTCHA、二段階認証、CSRF 対策を実施してください。</div>
                         </motion.form>
                     </AnimatePresence>
                 </div>
