@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,17 +12,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
-
-// Add routes in main.go like:
-// r := gin.Default()
-// authMiddleware := middleware.AuthMiddleware()
-// r.POST("/folders", authMiddleware, controllers.CreateFolderHandler(fileRepo))
-// r.GET("/files", authMiddleware, controllers.ListHandler(fileRepo))
-// r.POST("/files/upload", authMiddleware, controllers.UploadHandler(fileRepo, storageSvc))
-// r.GET("/files/:id/download", authMiddleware, controllers.DownloadHandler(fileRepo))
-// r.DELETE("/files/:id", authMiddleware, controllers.DeleteHandler(fileRepo, storageSvc))
-// r.GET("/folders/:parent_id/stats", authMiddleware, controllers.FolderStatsHandler(fileRepo))
-// r.PATCH("/files/:id/move", authMiddleware, controllers.MoveHandler(fileRepo)) // <- 追加例
 
 type createFolderReq struct {
 	Name     string `json:"name" binding:"required"`
@@ -44,6 +32,13 @@ type FolderStatsResponse struct {
 	ParentID   string       `json:"parent_id"`
 	TotalItems int          `json:"total_items"`
 	Stats      []FolderStat `json:"stats"`
+}
+
+func sanitizeFilenameForHeader(name string) string {
+	name = strings.ReplaceAll(name, "\r", "")
+	name = strings.ReplaceAll(name, "\n", "")
+	name = strings.ReplaceAll(name, `"`, "'")
+	return name
 }
 
 // @Summary Create folder
@@ -113,8 +108,6 @@ func FoldersListHandler(fileRepo repository.FileRepository) gin.HandlerFunc {
 		uid, _ := c.Get("user_id")
 		ownerID := uid.(string)
 
-		fmt.Println("ListChildren", parentID)
-
 		nodes, err := fileRepo.ListChildren(ownerID, parentID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -125,7 +118,6 @@ func FoldersListHandler(fileRepo repository.FileRepository) gin.HandlerFunc {
 	}
 }
 
-// Upload
 // @Summary Upload file
 // @Tags files
 // @Accept multipart/form-data
@@ -198,7 +190,7 @@ func DownloadHandler(fileRepo repository.FileRepository) gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"error": "file missing on server"})
 			return
 		}
-		c.Header("Content-Disposition", "attachment; filename="+filepath.Base(node.Name))
+		c.Header("Content-Disposition", `attachment; filename="`+sanitizeFilenameForHeader(filepath.Base(node.Name))+`"`)
 		c.File(node.Path)
 	}
 }
@@ -398,7 +390,6 @@ func FolderStatsHandler(fileRepo repository.FileRepository) gin.HandlerFunc {
 	}
 }
 
-// --- Move handler ---
 // @Summary Move node (file or folder) to another parent (or root)
 // @Tags files
 // @Accept json
@@ -521,7 +512,6 @@ func collectNodesRecursive(fileRepo repository.FileRepository, ownerID, parentID
 	return result, nil
 }
 
-// helper
 func DeleteRecursive(fileRepo repository.FileRepository, storage *services.StorageService, node *models.Node) error {
 	children, _ := fileRepo.ListChildren(node.OwnerID, node.ID)
 	for _, ch := range children {

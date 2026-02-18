@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"server/internal/models"
@@ -107,7 +106,6 @@ func (r *MongoFileRepo) FindNodeByID(id string) (*models.Node, error) {
 func (r *MongoFileRepo) ListChildren(ownerID, parentID string) ([]*models.Node, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	fmt.Println("parentID", parentID)
 
 	filter := bson.M{"owner_id": ownerID}
 	if parentID == "" {

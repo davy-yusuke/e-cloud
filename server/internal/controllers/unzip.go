@@ -20,8 +20,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// UnzipResponse is returned when unzip completes successfully.
-// Used by swag for response schema.
 type UnzipResponse struct {
 	Message      string         `json:"message"`
 	CreatedCount int            `json:"created_count"`
@@ -53,7 +51,7 @@ func UnzipHandler(fileRepo repository.FileRepository, storage *services.StorageS
 			tempPrefix          = "upload-zip-"
 		)
 
-		originalParentID := c.PostForm("parent_id") // keep original parent to create new folder under it
+		originalParentID := c.PostForm("parent_id")
 		parentID := originalParentID
 		uid, _ := c.Get("user_id")
 		ownerID := uid.(string)
@@ -132,7 +130,6 @@ func UnzipHandler(fileRepo repository.FileRepository, storage *services.StorageS
 		if baseName == "" {
 			baseName = "unzipped"
 		}
-		// limit length
 		if len(baseName) > 200 {
 			baseName = baseName[:200]
 		}
@@ -148,11 +145,8 @@ func UnzipHandler(fileRepo repository.FileRepository, storage *services.StorageS
 			return
 		}
 		createdNodes = append(createdNodes, rootNode)
-		// switch parentID so that all created nodes/files are under this new folder
 		parentID = rootNode.ID
-		// we will use the newly created node.ID as physical prefix in storage to avoid collisions
 		physicalFolderPrefix := rootNode.ID
-		// --------------------------------------------------------------------
 
 		createDirNode := func(dirParts []string) (string, error) {
 			if len(dirParts) == 0 {
